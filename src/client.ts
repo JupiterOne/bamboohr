@@ -123,6 +123,25 @@ export class APIClient {
   }
 
   /**
+   * Iterates each employee resource in the provider.
+   *
+   * @param iteratee receives each resource to produce entities/relationships
+   */
+  public async iterateEmployees(
+    iteratee: ResourceIteratee<BambooHREmployeeDetails>,
+  ): Promise<void> {
+    const employeesResponse = await this.request(
+      this.withBaseUri('v1/employees/directory'),
+    );
+    const employeesObject = await employeesResponse.json();
+    const employees = employeesObject.employees;
+
+    for (const employee of employees) {
+      await iteratee(employee);
+    }
+  }
+
+  /**
    * Iterates each employee file in the provider.
    *
    * @param iteratee receives each resource to produce entities/relationships

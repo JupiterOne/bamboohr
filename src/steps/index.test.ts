@@ -8,9 +8,11 @@ import { IntegrationConfig } from '../types';
 import { fetchUsers } from './access';
 import { fetchAccountDetails } from './account';
 import { fetchCompanyFiles } from './company-files';
+import { fetchEmployees } from './employees';
 import { fetchEmployeeFiles } from './employee-files';
+import { relationships } from '../constants';
 
-const DEFAULT_CLIENT_NAMESPACE = 'creativicetrial';
+const DEFAULT_CLIENT_NAMESPACE = 'jupiteronepartneraccount';
 const DEFAULT_CLIENT_ACCESS_TOKEN = 'client_access_token';
 
 const integrationConfig: IntegrationConfig = {
@@ -27,7 +29,7 @@ describe('BambooHR', () => {
   beforeEach(() => {
     recording = setupRecording({
       directory: __dirname,
-      name: 'jfrog_recordings',
+      name: 'bamboohr_recordings',
       options: {
         recordFailedRequests: true,
       },
@@ -49,6 +51,7 @@ describe('BambooHR', () => {
     await fetchUsers(context);
     await fetchCompanyFiles(context);
     await fetchEmployeeFiles(context);
+    await fetchEmployees(context);
 
     // Review snapshot, failure is a regression
     expect({
@@ -198,6 +201,112 @@ describe('BambooHR', () => {
           },
         },
         required: [],
+      },
+    });
+
+    const employees = context.jobState.collectedEntities.filter((e) =>
+      e._class.includes('Record'),
+    );
+    expect(employees.length).toBeGreaterThan(0);
+    expect(employees).toMatchGraphObjectSchema({
+      _class: ['Record'],
+      schema: {
+        additionalProperties: true,
+        properties: {
+          _type: { const: 'bamboohr_employee' },
+          _rawData: {
+            type: 'array',
+            items: { type: 'object' },
+          },
+          id: {
+            type: 'string',
+          },
+          webLink: {
+            type: 'string',
+          },
+          displayName: { type: 'string' },
+          name: { type: 'string' },
+          username: { type: 'string' },
+          firstName: { type: 'string' },
+          lastName: { type: 'string' },
+          email: { type: 'string' },
+          location: { type: 'string' },
+          jobTitle: { type: 'string' },
+          workEmail: { type: 'string' },
+          workPhone: { type: 'string' },
+          mobilePhone: { type: 'string' },
+          department: { type: 'string' },
+          division: { type: 'string' },
+          supervisor: { type: 'string' },
+          preferredName: { type: 'string' },
+          gender: { type: 'string' },
+          linkedIn: { type: 'string' },
+          workPhoneExtension: { type: 'string' },
+          photoUploaded: { type: 'boolean' },
+          photoUrl: { type: 'string' },
+          canUploadPhoto: { type: 'number' },
+        },
+        required: [],
+      },
+    });
+
+    expect(
+      context.jobState.collectedRelationships.filter(
+        (e) => e._type === relationships.USER_IS_EMPLOYEE._type,
+      ),
+    ).toMatchDirectRelationshipSchema({
+      schema: {
+        properties: {
+          _class: { const: 'IS' },
+          _type: {
+            const: 'bamboohr_user_is_employee',
+          },
+        },
+      },
+    });
+
+    expect(
+      context.jobState.collectedRelationships.filter(
+        (e) => e._type === relationships.ACCOUNT_HAS_USER._type,
+      ),
+    ).toMatchDirectRelationshipSchema({
+      schema: {
+        properties: {
+          _class: { const: 'HAS' },
+          _type: {
+            const: 'bamboohr_account_has_user',
+          },
+        },
+      },
+    });
+
+    expect(
+      context.jobState.collectedRelationships.filter(
+        (e) => e._type === relationships.ACCOUNT_HAS_FILE._type,
+      ),
+    ).toMatchDirectRelationshipSchema({
+      schema: {
+        properties: {
+          _class: { const: 'HAS' },
+          _type: {
+            const: 'bamboohr_account_has_file',
+          },
+        },
+      },
+    });
+
+    expect(
+      context.jobState.collectedRelationships.filter(
+        (e) => e._type === relationships.USER_HAS_FILE._type,
+      ),
+    ).toMatchDirectRelationshipSchema({
+      schema: {
+        properties: {
+          _class: { const: 'HAS' },
+          _type: {
+            const: 'bamboohr_user_has_file',
+          },
+        },
       },
     });
   });

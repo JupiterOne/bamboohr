@@ -10,6 +10,7 @@ import {
 import { createAPIClient } from '../client';
 import { ACCOUNT_ENTITY_DATA_KEY, entities, relationships } from '../constants';
 import { IntegrationConfig } from '../types';
+import { getEmployeeKey } from './employees';
 
 export function getUserKey(id: number): string {
   return `bamboohr_user:${id}`;
@@ -63,6 +64,21 @@ export async function fetchUsers({
         to: userEntity,
       }),
     );
+
+    if (user.employeeId) {
+      const employeeEntity = await jobState.findEntity(
+        getEmployeeKey(`${user.employeeId}`),
+      );
+      if (employeeEntity) {
+        await jobState.addRelationship(
+          createDirectRelationship({
+            _class: RelationshipClass.IS,
+            from: userEntity,
+            to: employeeEntity,
+          }),
+        );
+      }
+    }
   });
 }
 
@@ -71,8 +87,11 @@ export const accessSteps: IntegrationStep<IntegrationConfig>[] = [
     id: 'fetch-users',
     name: 'Fetch Users',
     entities: [entities.USER],
-    relationships: [relationships.ACCOUNT_HAS_USER],
-    dependsOn: ['fetch-account'],
+    relationships: [
+      relationships.ACCOUNT_HAS_USER,
+      relationships.USER_IS_EMPLOYEE,
+    ],
+    dependsOn: ['fetch-account', 'fetch-employees'],
     executionHandler: fetchUsers,
   },
 ];
